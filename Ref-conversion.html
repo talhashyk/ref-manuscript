@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reference → XML Converter (Gemini)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #171b24;
+    --surface2: #1e2330;
+    --border: #2a2f3e;
+    --border2: #363d52;
+    --accent: #4f8ef7;
+    --accent2: #7b5ea7;
+    --green: #3ecf8e;
+    --amber: #f59e0b;
+    --red: #f87171;
+    --text: #e2e8f0;
+    --text2: #8892a4;
+    --text3: #4a5568;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+  .logo-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .header-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Layout */
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: calc(100vh - 56px);
+  }
+
+  /* Panels */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-left { border-right: 1px solid var(--border); }
+
+  .panel-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+  .panel-actions { display: flex; gap: 8px; }
+
+  /* Buttons */
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.07); }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    padding: 8px 20px;
+  }
+  .btn-primary:hover { background: #6ba3f9; border-color: #6ba3f9; color: #fff; }
+  .btn-primary:disabled { background: var(--border2); border-color: var(--border2); color: var(--text3); cursor: not-allowed; }
+
+  /* Textarea */
+  .panel-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  textarea {
+    flex: 1;
+    background: var(--bg);
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    padding: 20px;
+    resize: none;
+    width: 100%;
+  }
+  textarea::placeholder { color: var(--text3); }
+
+  /* API key row */
+  .api-row {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .api-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+  .api-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .api-input:focus { border-color: var(--accent); }
+  .api-input::placeholder { color: var(--text3); }
+
+  /* Convert bar */
+  .convert-bar {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 12px;
+  }
+  .ref-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .ref-count span { color: var(--accent); }
+
+  /* Output area */
+  .output-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    background: var(--bg);
+  }
+  .output-body::-webkit-scrollbar { width: 4px; }
+  .output-body::-webkit-scrollbar-track { background: transparent; }
+  .output-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* Reference cards */
+  .ref-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+    animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .ref-card:hover { border-color: var(--border2); }
+
+  .ref-card-header {
+    padding: 9px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .ref-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+  }
+  .type-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .badge-journal  { background: rgba(79,142,247,0.12); color: #4f8ef7; border: 1px solid rgba(79,142,247,0.25); }
+  .badge-book     { background: rgba(62,207,142,0.12); color: #3ecf8e; border: 1px solid rgba(62,207,142,0.25); }
+  .badge-confproc { background: rgba(123,94,167,0.15); color: #a78bcc; border: 1px solid rgba(123,94,167,0.3); }
+  .badge-web      { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
+  .badge-thesis   { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.25); }
+  .badge-patent   { background: rgba(100,200,220,0.12); color: #67d3e3; border: 1px solid rgba(100,200,220,0.25); }
+
+  .ref-card-xml {
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.75;
+    color: #9ab1d4;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .ref-card-xml::-webkit-scrollbar { height: 3px; }
+  .ref-card-xml::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  /* XML syntax highlighting */
+  .xml-tag     { color: #6b9cde; }
+  .xml-attr    { color: #a0c4ff; }
+  .xml-val     { color: #f4a261; }
+  .xml-content { color: #cdd6f4; }
+  .xml-comment { color: #4a5568; }
+
+  /* Status bar */
+  .status-bar {
+    padding: 8px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
+  .status-dot.ready   { background: var(--green); }
+  .status-dot.working { background: var(--amber); animation: pulse 0.8s ease-in-out infinite; }
+  .status-dot.error   { background: var(--red); }
+  .status-text { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 10px;
+    color: var(--text3);
+  }
+  .empty-icon { font-size: 32px; opacity: 0.3; }
+  .empty-text { font-family: var(--mono); font-size: 12px; text-align: center; line-height: 1.8; }
+
+  /* Copy all button area */
+  .copy-all-area {
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: none;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .copy-all-area.visible { display: flex; }
+
+  /* Progress */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .progress-bar-wrap {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  /* Tooltip */
+  .tooltip-wrap { position: relative; display: inline-block; }
+  .tooltip-wrap .tooltip {
+    visibility: hidden;
+    background: #1a1f2e;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .tooltip-wrap:hover .tooltip { visibility: visible; opacity: 1; }
+
+  /* Scrollbar for input */
+  textarea::-webkit-scrollbar { width: 4px; }
+  textarea::-webkit-scrollbar-track { background: transparent; }
+  textarea::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; height: auto; min-height: calc(100vh - 56px); }
+    .panel-left { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    REF//XML — Reference Converter (Gemini Free)
+  </div>
+  <div class="header-meta">Supports: Journal · Book · Confproc · Web · Thesis · Patent</div>
+</header>
+
+<div class="app">
+
+  <!-- LEFT PANEL: Input -->
+  <div class="panel panel-left">
+    <div class="panel-header">
+      <span class="panel-title">Input — Paste References</span>
+      <div class="panel-actions">
+        <button class="btn" onclick="loadExample()">Load Example</button>
+        <button class="btn" onclick="clearInput()">Clear</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <textarea id="refInput" placeholder="Paste your references here, one per line or numbered list.
+
+Example:
+1. Zhang Y., Li Z. Mesoporous carbon in biomedicine. Carbon 2023;212:118121.
+2. https://stemcures.com/adipose-vs-bone-marrow-stem-cells/ (2024)
+3. Wang H.W. Aircraft engine rolling bearing fault diagnosis. M.S. thesis, Nanjing University, 2017.
+
+Each reference will be analysed, classified, and converted to your XML schema."></textarea>
+    </div>
+    <div class="api-row">
+      <span class="api-label">Gemini Key</span>
+      <input type="text" id="apiKey" class="api-input" placeholder="Paste your AIza... key here" />
+      <button class="btn" onclick="saveKey()" style="white-space:nowrap;">Save Key</button>
+      <button class="btn" onclick="testKey()" style="white-space:nowrap;">Test Key</button>
+      <button class="btn" onclick="clearKey()" style="white-space:nowrap;">Clear</button>
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" class="btn" style="text-decoration:none;white-space:nowrap;">Get Key ↗</a>
+    </div>
+    <div id="keyStatus" style="padding:4px 20px;font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--surface);display:none;"></div>
+    <div class="convert-bar">
+      <div>
+        <div class="ref-count" id="refCount">0 references detected</div>
+        <div class="progress-row" id="progressRow" style="display:none; margin-top:6px;">
+          <span id="progressLabel">0 / 0</span>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill"></div></div>
+        </div>
+      </div>
+      <button class="btn-primary btn" id="convertBtn" onclick="convertAll()">Convert → XML</button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: Output -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Output — XML</span>
+      <div class="panel-actions">
+        <div class="tooltip-wrap">
+          <button class="btn" onclick="copyAllXML()" id="copyAllBtn" style="display:none">Copy All</button>
+          <span class="tooltip">Copy full &lt;ref-list&gt; block</span>
+        </div>
+        <div class="tooltip-wrap">
+          <button class="btn" onclick="downloadXML()" id="downloadBtn" style="display:none">Download</button>
+          <span class="tooltip">Download as .xml file</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="output-body" id="outputBody">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">⬡</div>
+        <div class="empty-text">Paste references on the left<br>and click Convert → XML</div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-text" id="statusText">Idle — enter your API key and references to begin</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SYSTEM_PROMPT = `You are an expert academic reference XML converter. Convert a reference into structured XML following this exact schema.
+
+RULES:
+1. Detect the type: journal, book, confproc, web, thesis, or patent
+2. Output ONLY raw XML — no markdown, no explanation, no backticks
+3. Use sequential ref ids like r1, r2, etc. (passed to you)
+4. Follow these exact templates:
+
+JOURNAL:
+<ref id="rN">
+  <label>N</label>
+  <element-citation publication-type="journal">
+    <person-group person-group-type="author">
+      <name><surname>SURNAME</surname><given-names>I.</given-names></name>
+    </person-group>
+    <article-title>Title.</article-title>
+    <source>Journal Name</source>
+    <year>YYYY</year>
+    <volume>V</volume>
+    <issue>N</issue>  <!-- omit if no issue number -->
+    <fpage>FIRST</fpage>
+    <lpage>LAST</lpage>  <!-- omit if only fpage/article number -->
+    <pub-id pub-id-type="doi">10.xxxx/xxxxx</pub-id>  <!-- omit if no DOI -->
+    <pub-id pub-id-type="pmid">NNNNNNN</pub-id>  <!-- omit if no PMID -->
+  </element-citation>
+</ref>
+
+BOOK:
+<ref id="rN">
+  <label>N</label>
+  <element-citation publication-type="book">
+    <person-group person-group-type="author">
+      <n><surname>SURNAME</surname><given-names>I.</given-names></n>
+    </person-group>
+    <chapter-title>Chapter or paper title goes here.</chapter-title>  <!-- ALWAYS use <chapter-title> NOT <article-title> for books/book chapters -->
+    <source>Book Title Here.</source>  <!-- the book title comes after "In:" in the reference -->
+    <publisher-name>Publisher</publisher-name>
+    <publisher-loc>City, Country</publisher-loc>  <!-- omit if not stated -->
+    <year>YYYY</year>
+    <fpage>FIRST</fpage>
+    <lpage>LAST</lpage>  <!-- omit if no page range -->
+    <pub-id pub-id-type="doi">10.xxxx/xxxxx</pub-id>  <!-- omit if no DOI -->
+  </element-citation>
+</ref>
+
+CONFPROC:
+<ref id="rN">
+  <label>N</label>
+  <element-citation publication-type="confproc">
+    <person-group person-group-type="author">
+      <name><surname>SURNAME</surname><given-names>I.</given-names></name>
+    </person-group>
+    <article-title>Paper Title.</article-title>
+    <source>Conference Name (ABBREV)</source>
+    <comment>City, Country, Year, pp. X-Y,</comment>
+    <pub-id pub-id-type="doi">10.xxxx/xxxxx</pub-id>  <!-- omit if no DOI -->
+  </element-citation>
+</ref>
+
+WEB:
+<ref id="rN">
+  <label>N</label>
+  <element-citation publication-type="web">
+    <year>YYYY</year>
+    <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" ext-link-type="uri" xlink:href="URL">URL</ext-link>
+  </element-citation>
+</ref>
+
+THESIS:
+<ref id="rN">
+  <label>N</label>
+  <element-citation publication-type="thesis">
+    <person-group person-group-type="author">
+      <name><surname>SURNAME</surname><given-names>I.</given-names></name>
+    </person-group>
+    <article-title>Thesis Title.</article-title>
+    <source>M.S. thesis, University Name, City, Country</source>
+    <year>YYYY</year>
+  </element-citation>
+</ref>
+
+PATENT:
+<ref id="rN">
+  <label>N</label>
+  <element-citation publication-type="patent">
+    <person-group person-group-type="author">
+      <name><surname>SURNAME</surname><given-names>I.</given-names></name>
+    </person-group>
+    <article-title>Patent Title.</article-title>
+    <patent>Country Code Patent NUMBER</patent>
+    <year>YYYY</year>
+  </element-citation>
+</ref>
+
+IMPORTANT:
+- Parse author names carefully: split surname from given names/initials
+- If multiple authors, include all as separate <name> elements
+- Omit empty/unknown fields entirely — do not include empty tags
+- PMID: ALWAYS output <pub-id pub-id-type="pmid">NUMBER</pub-id> when [PMID: NUMBER] appears anywhere in the reference text (it may be on a separate line after the DOI line)
+- DOI: ALWAYS output <pub-id pub-id-type="doi">10.xxxx/xxx</pub-id> extracting only the DOI portion from the URL, not the full http://dx.doi.org/... URL
+- Read ALL lines of a reference — PMID is often on the last line formatted as [PMID: NNNNNNN]
+- ISSUE: when volume is written as 74(3), split into <volume>74</volume><issue>3</issue> — the number in parentheses is the issue number
+- If no issue number is present (e.g. just "74"), omit <issue> entirely
+- ARTICLE NUMBERS vs PAGE RANGES: if a reference has a single number like 1295, 100114, 15235, e3128, 1098915 as its page info (not two numbers with a dash), it is an article number — put it in <fpage> only, never add <lpage>
+- BOOK CHAPTERS: NEVER use <article-title> for books — ALWAYS use <chapter-title> for the chapter/paper title. If the reference has "In: Book Title", the text before "In:" is the <chapter-title> and the text after "In:" is the <source> (book title). Pattern: "Chapter Title. In: Book Title; Publisher, Year; pp. X-Y"
+- PUBLISHER LOCATION: include <publisher-loc> for books when a city/country is stated (e.g. "Boca Raton: FL, USA" or "Elsevier, 2025")
+- AUTHOR PARSING: if authors are separated inconsistently (missing semicolons, comma errors), still parse all authors correctly into separate <n> elements
+- Electronic page numbers like e3128 go in <fpage> only — they are article identifiers, not page ranges
+- lpage: omit if the reference uses only an article number rather than a page range
+- Do not add fields not in the schema`;
+
+// API Key management
+async function testKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { showKeyStatus('⚠ Paste a key first', '#f59e0b'); return; }
+  showKeyStatus('⟳ Testing key…', 'var(--text2)');
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Say OK' }] }],
+          generationConfig: { maxOutputTokens: 5 }
+        })
+      }
+    );
+    if (res.ok) {
+      showKeyStatus('✓ Key is valid and working!', 'var(--green)');
+      localStorage.setItem('gemini_api_key', key);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      const msg = err.error?.message || `HTTP ${res.status}`;
+      showKeyStatus(`✗ Key failed: ${msg} — get a new key from AI Studio`, 'var(--red)');
+    }
+  } catch(e) {
+    showKeyStatus('✗ Network error — check your connection', 'var(--red)');
+  }
+}
+
+function saveKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { showKeyStatus('No key entered', 'var(--red)'); return; }
+  if (!key.startsWith('AIza')) {
+    showKeyStatus('⚠ Key should start with "AIza..." — get a valid key from AI Studio', '#f59e0b');
+    return;
+  }
+  localStorage.setItem('gemini_api_key', key);
+  showKeyStatus('✓ Key saved — will auto-load next time you open this file', 'var(--green)');
+}
+
+function clearKey() {
+  localStorage.removeItem('gemini_api_key');
+  document.getElementById('apiKey').value = '';
+  showKeyStatus('Key cleared from browser storage', 'var(--text3)');
+}
+
+function showKeyStatus(msg, color) {
+  const el = document.getElementById('keyStatus');
+  el.textContent = msg;
+  el.style.color = color;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 8000);
+}
+
+// Auto-load saved API key using browser localStorage
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('gemini_api_key');
+  if (saved) {
+    document.getElementById('apiKey').value = saved;
+    showKeyStatus('✓ Key loaded from browser storage', 'var(--green)');
+  }
+});
+
+let results = [];
+let refsStore = []; // stores all parsed refs so retry can access them
+
+async function retryRef(idx) {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { setStatus('error', 'Error — API key is required'); return; }
+  if (!refsStore[idx]) { setStatus('error', `No ref text stored for ref ${idx+1}`); return; }
+
+  const n = idx + 1;
+  const card = document.getElementById(`card-${n}`);
+  if (card) {
+    card.innerHTML = `<div class="ref-card-header">
+      <span class="ref-id">REF_${String(n).padStart(3,'0')}</span>
+      <span class="type-badge" style="background:rgba(255,255,255,0.05);color:var(--text3);border:1px solid var(--border);">retrying…</span>
+    </div>
+    <div class="ref-card-xml" style="color:var(--text3);">⟳ Retrying via Gemini API…</div>`;
+  }
+
+  const refText = refsStore[idx];
+  const prompt = SYSTEM_PROMPT + `\n\nConvert ALL of the following references. Output each as a complete <ref>...</ref> block, one after another, with NO extra text between them:\n\n=== Reference #${n} (use id="r${n}" and label ${n}) ===\n${refText}`;
+
+  try {
+    setStatus('working', `Retrying ref ${n}…`);
+    const xml = await callGemini(apiKey, prompt);
+    const blocks = splitXMLRefs(xml);
+    const block = blocks[0];
+    if (block) {
+      results[idx] = block;
+      const newCard = renderCard(block, idx);
+      card?.replaceWith(newCard);
+      setStatus('ready', `Ref ${n} converted successfully`);
+      // Show download/copy buttons if we now have at least one result
+      const success = results.filter(Boolean).length;
+      if (success > 0) {
+        document.getElementById('copyAllBtn').style.display = 'inline-block';
+        document.getElementById('downloadBtn').style.display = 'inline-block';
+      }
+    } else {
+      throw new Error('No XML returned — try again');
+    }
+  } catch(err) {
+    results[idx] = null;
+    if (card) card.innerHTML = `<div class="ref-card-header">
+      <span class="ref-id">REF_${String(n).padStart(3,'0')}</span>
+      <span class="type-badge" style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.25);">error</span>
+    </div>
+    <div class="ref-card-xml" style="color:#f87171;">✗ ${err.message}</div>
+    <div style="padding:8px 14px;border-top:1px solid var(--border);">
+      <button class="btn" style="padding:4px 12px;font-size:11px;color:#f87171;border-color:rgba(248,113,113,0.4);" onclick="retryRef(${idx})">⟳ Retry</button>
+    </div>`;
+    setStatus('error', `Ref ${n} failed again — ${err.message}`);
+  }
+}
+
+// Count references as user types
+document.getElementById('refInput').addEventListener('input', function() {
+  const refs = parseReferenceLines(this.value);
+  const c = refs.length;
+  document.getElementById('refCount').textContent = c === 0 ? '0 references detected' : `${c} reference${c>1?'s':''} detected`;
+});
+
+function parseReferenceLines(text) {
+  if (!text.trim()) return [];
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const refs = [];
+  let current = '';
+  for (const line of lines) {
+    const isNewRef = /^(\d+[\.\)]\s|^\[\d+\])/.test(line);
+    if (isNewRef) {
+      if (current.trim()) refs.push(current.trim());
+      current = line;
+    } else {
+      current += (current ? ' ' : '') + line;
+    }
+  }
+  if (current.trim()) refs.push(current.trim());
+  return refs.length > 0 ? refs : lines;
+}
+
+function setStatus(type, text) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot ' + type;
+  document.getElementById('statusText').textContent = text;
+}
+
+async function callGemini(apiKey, prompt) {
+  // Correct free-tier model names as of March 2026
+  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+
+  for (const model of models) {
+    setStatus('working', `Calling ${model}…`);
+    let response;
+    try {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+          })
+        }
+      );
+    } catch(e) {
+      throw new Error('Network error — check your internet connection');
+    }
+
+    if (response.ok) {
+      const data = await response.json();
+      let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      text = text.replace(/^```xml\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/i,'').trim();
+      return text;
+    }
+
+    const err = await response.json().catch(() => ({}));
+    const msg = err.error?.message || '';
+    const isQuota = response.status === 429 || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('resource_exhausted');
+    const isNotFound = response.status === 404 || msg.toLowerCase().includes('not found');
+
+    if (isQuota || isNotFound) {
+      setStatus('working', `${model} unavailable, trying next…`);
+      await new Promise(r => setTimeout(r, 2000));
+      continue;
+    }
+
+    throw new Error(msg || `HTTP ${response.status}`);
+  }
+
+  throw new Error('All models unavailable — your API key may be expired or invalid. Click "Test Key" to check, or get a new key from AI Studio.');
+}
+
+function splitXMLRefs(xmlText) {
+  // Split combined XML output into individual <ref>...</ref> blocks
+  const matches = [...xmlText.matchAll(/<ref\s[^>]*>[\s\S]*?<\/ref>/g)];
+  return matches.map(m => m[0].trim());
+}
+
+async function convertAll() {
+  const input = document.getElementById('refInput').value.trim();
+  if (!input) { setStatus('error', 'Error — no references to convert'); return; }
+
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { setStatus('error', 'Error — API key is required'); return; }
+
+  const refs = parseReferenceLines(input);
+  if (!refs.length) { setStatus('error', 'Error — could not parse references'); return; }
+
+  results = [];
+  refsStore = refs; // save for retry use
+  const body = document.getElementById('outputBody');
+  body.innerHTML = '';
+  document.getElementById('copyAllBtn').style.display = 'none';
+  document.getElementById('downloadBtn').style.display = 'none';
+
+  const btn = document.getElementById('convertBtn');
+  btn.disabled = true;
+  btn.textContent = 'Converting...';
+
+  const progressRow = document.getElementById('progressRow');
+  progressRow.style.display = 'flex';
+  document.getElementById('progressLabel').textContent = `0 / ${refs.length}`;
+  document.getElementById('progressFill').style.width = '0%';
+
+  // Show placeholder cards immediately
+  for (let i = 0; i < refs.length; i++) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'ref-card';
+    placeholder.id = `card-${i+1}`;
+    placeholder.innerHTML = `<div class="ref-card-header">
+      <span class="ref-id">REF_${String(i+1).padStart(3,'0')}</span>
+      <span class="type-badge" style="background:rgba(255,255,255,0.05);color:var(--text3);border:1px solid var(--border);">waiting…</span>
+    </div>
+    <div class="ref-card-xml" style="color:var(--text3);">⟳ Queued…</div>`;
+    body.appendChild(placeholder);
+  }
+  body.scrollTop = 0;
+
+  // BATCH STRATEGY: Send up to 10 refs per API call to minimise rate limit hits
+  const BATCH_SIZE = 10;
+  const batches = [];
+  for (let i = 0; i < refs.length; i += BATCH_SIZE) {
+    batches.push(refs.slice(i, i + BATCH_SIZE).map((r, j) => ({ ref: r, idx: i + j })));
+  }
+
+  let doneCount = 0;
+
+  for (const batch of batches) {
+    // Build a single prompt with all refs in this batch
+    const refBlock = batch.map(({ ref, idx }) => {
+      const n = idx + 1;
+      return `=== Reference #${n} (use id="r${n}" and label ${n}) ===\n${ref}`;
+    }).join('\n\n');
+
+    const batchPrompt = SYSTEM_PROMPT + `\n\nConvert ALL of the following references. Output each as a complete <ref>...</ref> block, one after another, with NO extra text between them:\n\n` + refBlock;
+
+    // Mark batch as processing
+    batch.forEach(({ idx }) => {
+      const card = document.getElementById(`card-${idx+1}`);
+      if (card) card.querySelector('.ref-card-xml').textContent = '⟳ Calling Gemini API…';
+    });
+
+    try {
+      setStatus('working', `Converting refs ${batch[0].idx+1}–${batch[batch.length-1].idx+1} of ${refs.length}…`);
+      const xmlText = await callGemini(apiKey, batchPrompt);
+      const xmlBlocks = splitXMLRefs(xmlText);
+
+      // Match returned blocks back to batch items by label number
+      batch.forEach(({ ref, idx }, batchPos) => {
+        const n = idx + 1;
+        // Find the block for this ref number
+        let xml = xmlBlocks.find(b => {
+          const labelMatch = b.match(/<label>(\d+)<\/label>/);
+          return labelMatch && parseInt(labelMatch[1]) === n;
+        });
+        // Fallback: use positional match
+        if (!xml && xmlBlocks[batchPos]) xml = xmlBlocks[batchPos];
+
+        const card = document.getElementById(`card-${n}`);
+        if (xml) {
+          results[idx] = xml;
+          const newCard = renderCard(xml, idx);
+          card?.replaceWith(newCard);
+          doneCount++;
+        } else {
+          results[idx] = null;
+          if (card) card.innerHTML = `<div class="ref-card-header">
+            <span class="ref-id">REF_${String(n).padStart(3,'0')}</span>
+            <span class="type-badge" style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.25);">missing</span>
+          </div>
+          <div class="ref-card-xml" style="color:#f87171;">✗ Not returned in batch</div>
+          <div style="padding:8px 14px;border-top:1px solid var(--border);">
+            <button class="btn" style="padding:4px 12px;font-size:11px;color:#f87171;border-color:rgba(248,113,113,0.4);" onclick="retryRef(${idx})">⟳ Retry this ref</button>
+          </div>`;
+        }
+
+        document.getElementById('progressLabel').textContent = `${doneCount} / ${refs.length}`;
+        document.getElementById('progressFill').style.width = `${(doneCount/refs.length)*100}%`;
+      });
+
+    } catch(err) {
+      batch.forEach(({ idx }) => {
+        results[idx] = null;
+        const n = idx + 1;
+        const card = document.getElementById(`card-${n}`);
+        if (card) card.innerHTML = `<div class="ref-card-header">
+          <span class="ref-id">REF_${String(n).padStart(3,'0')}</span>
+          <span class="type-badge" style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.25);">error</span>
+        </div>
+        <div class="ref-card-xml" style="color:#f87171;">✗ ${err.message}</div>
+        <div style="padding:8px 14px;border-top:1px solid var(--border);">
+          <button class="btn" style="padding:4px 12px;font-size:11px;color:#f87171;border-color:rgba(248,113,113,0.4);" onclick="retryRef(${idx})">⟳ Retry this ref</button>
+        </div>`;
+      });
+    }
+
+    // Small pause between batches to be polite to the rate limiter
+    if (batches.indexOf(batch) < batches.length - 1) {
+      setStatus('working', 'Pausing 8s between batches…');
+      await new Promise(r => setTimeout(r, 8000));
+    }
+  }
+
+  document.getElementById('progressLabel').textContent = `${refs.length} / ${refs.length}`;
+  document.getElementById('progressFill').style.width = '100%';
+  btn.disabled = false;
+  btn.textContent = 'Convert → XML';
+
+  const success = results.filter(Boolean).length;
+  if (success > 0) {
+    document.getElementById('copyAllBtn').style.display = 'inline-block';
+    document.getElementById('downloadBtn').style.display = 'inline-block';
+    setStatus('ready', `Done — ${success} of ${refs.length} converted successfully`);
+  } else {
+    setStatus('error', 'Failed — check your API key and try again');
+  }
+}
+
+function highlightXML(xml) {
+  return xml
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/&lt;(\/?[\w-]+)(.*?)&gt;/g, (_, tag, attrs) => {
+      const aHighlighted = attrs.replace(/([\w:-]+)="([^"]*)"/g,
+        '<span class="xml-attr">$1</span>=<span class="xml-val">"$2"</span>');
+      return `<span class="xml-tag">&lt;${tag}${aHighlighted}&gt;</span>`;
+    });
+}
+
+function detectType(xml) {
+  const m = xml.match(/publication-type="(\w+)"/);
+  return m ? m[1] : 'unknown';
+}
+
+function renderCard(xml, index) {
+  const type = detectType(xml);
+  const n = index + 1;
+  const card = document.createElement('div');
+  card.className = 'ref-card';
+  card.id = `card-${n}`;
+  card.innerHTML = `
+    <div class="ref-card-header">
+      <span class="ref-id">REF_${String(n).padStart(3,'0')}</span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="type-badge badge-${type}">${type}</span>
+        <button class="btn" style="padding:3px 9px;font-size:10px;" onclick="copyCard(${index})">Copy</button>
+      </div>
+    </div>
+    <div class="ref-card-xml" id="xml-${n}">${highlightXML(xml)}</div>`;
+  return card;
+}
+
+
+function copyCard(index) {
+  const xml = results[index];
+  if (!xml) return;
+  navigator.clipboard.writeText(xml).then(() => {
+    setStatus('ready', `Copied ref ${index+1} to clipboard`);
+  });
+}
+
+function copyAllXML() {
+  const valid = results.filter(Boolean);
+  if (!valid.length) return;
+  const full = `<ref-list>\n${valid.join('\n')}\n</ref-list>`;
+  navigator.clipboard.writeText(full).then(() => {
+    setStatus('ready', `Copied all ${valid.length} references to clipboard`);
+  });
+}
+
+function downloadXML() {
+  const valid = results.filter(Boolean);
+  if (!valid.length) return;
+  const full = `<?xml version="1.0" encoding="UTF-8"?>\n<ref-list>\n${valid.join('\n')}\n</ref-list>`;
+  const blob = new Blob([full], {type: 'application/xml'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'references.xml';
+  a.click();
+  setStatus('ready', `Downloaded references.xml`);
+}
+
+function clearInput() {
+  document.getElementById('refInput').value = '';
+  document.getElementById('refCount').textContent = '0 references detected';
+  document.getElementById('progressRow').style.display = 'none';
+  document.getElementById('outputBody').innerHTML = `<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-text">Paste references on the left<br>and click Convert → XML</div></div>`;
+  document.getElementById('copyAllBtn').style.display = 'none';
+  document.getElementById('downloadBtn').style.display = 'none';
+  results = [];
+  setStatus('', 'Idle — enter your API key and references to begin');
+}
+
+function loadExample() {
+  document.getElementById('refInput').value = `1. Zhang Y., Li Z., Zhao Z., Li Y., Liu Z., Sun S. Mesoporous carbon in biomedicine: Modification strategies and biocompatibility. Carbon 2023;212:118121. doi:10.1016/j.carbon.2023.118121
+2. https://stemcures.com/adipose-vs-bone-marrow-stem-cells/ (2024)
+3. Guo Z., Fu Z.L., Fan S.M., Wen Y. A bearing ring under lubrication structure for an aero-engine. C.N. Patent CN116255247 A, 2023.
+4. Mitrovic R.M., Miskovic Z.Z., Djukic M.B., Bakic G.M. Statistical correlation between vibration characteristics, surface temperatures and service life of rolling bearings. Elsevier, 2016, pp. 2338-2346.
+5. Wang H.W. Aircraft engine rolling bearing fault diagnosis and prediction key technology research. M.S. thesis, Nanjing University of Aeronautics and Astronautics, Nanjing, China, 2017.
+6. Rajeshwari B.S., Dakshayini M. Optimized service level agreement based workload balancing strategy for cloud environment. Advance Computing Conference (IACC), Banglore, India, 2015, pp. 160-165. doi:10.1109/IADCC.2015.7154690`;
+  const refs = parseReferenceLines(document.getElementById('refInput').value);
+  document.getElementById('refCount').textContent = `${refs.length} references detected`;
+}
+</script>
+</body>
+</html>
